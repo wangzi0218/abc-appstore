@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
-  ShoppingBag, CreditCard, Search, Star, Zap, Package, Headphones, 
+  ShoppingBag, Star, Zap, Package, 
   AlertCircle, CheckCircle2, X, Plus, Layout, ShieldCheck, TrendingUp, 
-  Image as ImageIcon, Crown, Wallet, ArrowRight, ChevronRight, Users, Database, 
-  Layers, FileText, Receipt, Settings, User, Clock, Calendar, Info, 
-  QrCode, Smartphone, Building2, Upload, ArrowUpCircle, LogOut, Gem, 
-  Globe, Monitor, Printer, Activity, MessageCircle, FileSpreadsheet, 
-  Store, MapPin, Gift, HeartHandshake, Smile, Network, Warehouse, 
-  Pill, FileCheck, PhoneCall, MoreHorizontal, BookOpen, Wifi, Power, 
-  RefreshCw, Baby, Stethoscope, HeartPulse, Trophy, MessageSquare, Phone, Shield
+  Image as ImageIcon, Crown, Wallet, ArrowRight, ChevronRight, 
+  FileText, Receipt, Settings, Clock, Info, 
+  QrCode, Smartphone, Building2, 
+  Monitor, Activity, 
+  Smile, 
+  BookOpen, Wifi, Power, 
+  RefreshCw, MessageSquare
 } from 'lucide-react';
 
 // --- Imported Constants & Data ---
@@ -16,61 +16,12 @@ import {
   USER_PROFILE, 
   VERSION_LEVELS, 
   INITIAL_INVOICE_INFO, 
-  MOCK_REVIEWS, 
   INITIAL_TRANSACTIONS, 
   PRODUCTS 
 } from './constants/products';
 
 
-
 // --- COMPONENTS ---
-
-// New: Decoupled Floating Consultant Widget
-const ProductConsultantWidget = () => (
-    <div className="fixed bottom-24 right-10 w-72 bg-white rounded-2xl shadow-2xl border border-blue-100 z-[60] overflow-hidden animate-in slide-in-from-right-10 duration-500 hover:shadow-blue-200/50 transition-shadow">
-        {/* Widget Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 flex items-center gap-3">
-            <div className="relative">
-                <div className="w-10 h-10 rounded-full bg-white/30 border border-white/30 flex items-center justify-center text-white font-bold">A</div>
-                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-blue-600 rounded-full"></div>
-            </div>
-            <div className="text-white">
-                <div className="text-sm font-bold flex items-center gap-1">产品顾问 <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded font-normal">Online</span></div>
-                <div className="text-[10px] opacity-90 mt-0.5">有问题？我在线为您解答</div>
-            </div>
-        </div>
-        
-        {/* Widget Content */}
-        <div className="p-4 bg-white">
-             <div className="bg-gray-50 p-3 rounded-lg text-xs text-gray-600 mb-4 border border-gray-100 leading-relaxed">
-                👋 您好！我是负责该产品的技术顾问。关于功能、报价或部署方案，随时问我。
-             </div>
-             <div className="space-y-2">
-                 <button className="w-full flex items-center justify-center gap-2 bg-blue-50 text-blue-600 border border-blue-100 px-3 py-2 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors" onClick={() => alert("正在拨打 400-888-9999...")}>
-                    <PhoneCall size={14} /> 电话咨询
-                </button>
-                <div className="relative group w-full">
-                    <button className="w-full flex items-center justify-center gap-2 bg-green-50 text-green-600 border border-green-100 px-3 py-2 rounded-lg text-xs font-bold hover:bg-green-100 transition-colors">
-                        <MessageCircle size={14} /> 微信沟通
-                    </button>
-                     {/* Hover QR Overlay */}
-                     <div className="absolute bottom-full left-0 w-full mb-2 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none group-hover:pointer-events-auto transform translate-y-2 group-hover:translate-y-0 z-20">
-                        <div className="bg-white p-3 rounded-xl shadow-xl border border-gray-100 text-center mx-auto">
-                            <div className="w-full aspect-square bg-gray-100 rounded-lg flex items-center justify-center mb-2">
-                                 <QrCode size={48} className="text-gray-400"/>
-                            </div>
-                            <div className="text-[10px] text-gray-400">扫码添加好友</div>
-                        </div>
-                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-);
-
-const Badge = ({ children, color }: { children: React.ReactNode, color: string }) => (
-    <span className={`px-2 py-0.5 rounded text-xs font-medium ${color}`}>{children}</span>
-);
 
 const Button = ({ variant = 'primary', className = '', children, onClick, disabled }: any) => {
     const baseStyle = "px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed";
@@ -171,7 +122,7 @@ const SimpleMarkdown = ({ content }: { content: string }) => {
                 return (
                     <div key={idx} className="flex items-start gap-2 ml-1">
                         <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
-                        <span>{trimLine.replace('- ', '').replace(/\*\*(.*?)\*\*/g, (match, p1) => p1)}</span>
+                        <span>{trimLine.replace('- ', '').replace(/\*\*(.*?)\*\*/g, (_m, p1) => p1)}</span>
                     </div>
                 );
             }
@@ -181,7 +132,7 @@ const SimpleMarkdown = ({ content }: { content: string }) => {
                 return (
                     <div key={idx} className="flex items-start gap-2 ml-1">
                         <div className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-2 flex-shrink-0"></div>
-                        <span>{trimLine.replace('* ', '').replace(/\*\*(.*?)\*\*/g, (match, p1) => p1)}</span>
+                        <span>{trimLine.replace('* ', '').replace(/\*\*(.*?)\*\*/g, (_m, p1) => p1)}</span>
                     </div>
                 );
             }

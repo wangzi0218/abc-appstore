@@ -1,15 +1,3 @@
-import { 
-  ShoppingBag, CreditCard, Search, Star, Zap, Package, Headphones, 
-  AlertCircle, CheckCircle2, X, Plus, Layout, ShieldCheck, TrendingUp, 
-  Image as ImageIcon, Crown, Wallet, ArrowRight, ChevronRight, Users, Database, 
-  Layers, FileText, Receipt, Settings, User, Clock, Calendar, Info, 
-  QrCode, Smartphone, Building2, Upload, ArrowUpCircle, LogOut, Gem, 
-  Globe, Monitor, Printer, Activity, MessageCircle, FileSpreadsheet, 
-  Store, MapPin, Gift, HeartHandshake, Smile, Network, Warehouse, 
-  Pill, FileCheck, PhoneCall, MoreHorizontal, BookOpen, Wifi, Power, 
-  RefreshCw, Baby, Stethoscope, HeartPulse, Trophy, MessageSquare, Phone, Shield
-} from 'lucide-react';
-
 export const USER_PROFILE = {
     name: "中心医院 - 门诊部",
     currentVersion: "基础版", 
