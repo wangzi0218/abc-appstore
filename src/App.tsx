@@ -193,10 +193,7 @@ const StoreView = ({ products, userProfile, onSelectProduct, onShowRenewal, onSh
                                 </div>
                                 <div>
                                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">当前版本</div>
-                                    <div className="flex items-center gap-3">
-                                        <h2 className="text-2xl font-black text-gray-900">{userProfile.currentVersion}</h2>
-                                        <span className="text-[10px] bg-green-50 text-green-600 px-2 py-0.5 rounded border border-green-100 font-bold">运行中</span>
-                                    </div>
+                                    <h2 className="text-2xl font-black text-gray-900">{userProfile.currentVersion}</h2>
                                 </div>
                             </div>
                             <div className="flex gap-2">
@@ -281,7 +278,7 @@ const StoreView = ({ products, userProfile, onSelectProduct, onShowRenewal, onSh
                         <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between">
                             <div className="flex flex-col">
                                 {p.isOwned ? (
-                                    <span className="text-[10px] text-gray-400 font-bold uppercase">已有权益</span>
+                                    <span className="text-[10px] text-gray-400 font-bold uppercase">已购应用</span>
                                 ) : (
                                     <div className="flex items-baseline gap-0.5">
                                         <span className="text-lg font-black text-gray-900 font-mono">{p.price === 0 ? '免费' : p.price}</span>
