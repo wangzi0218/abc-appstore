@@ -238,7 +238,7 @@ const StoreView = ({ products, userProfile, onSelectProduct, onShowRenewal, onSh
                     </div>
                 </div>
                 <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                    共 {filteredProducts.length} 个项目
+                    共 {filteredProducts.length} 个应用
                 </div>
             </div>
 
