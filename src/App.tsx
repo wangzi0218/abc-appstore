@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   ShoppingBag, Star, Zap, Package, 
-  AlertCircle, CheckCircle2, X, Plus, Layout, ShieldCheck, TrendingUp, 
+  AlertCircle, CheckCircle2, X, Plus, Layout, 
   Image as ImageIcon, Crown, Wallet, ArrowRight, ChevronRight, 
   FileText, Receipt, Settings, Clock, Info, 
   QrCode, Smartphone, Building2, 
-  Monitor, Activity, 
+  Activity, 
   Smile, 
   BookOpen, Wifi, Power, 
   RefreshCw, MessageSquare
@@ -182,7 +182,7 @@ const StoreView = ({ products, userProfile, onSelectProduct, onShowRenewal, onSh
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
-            {/* 1. Version Dashboard - Synced with Wallet style */}
+            {/* 1. Version Dashboard */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-gray-100">
                     <div className="flex-1 p-8 bg-gradient-to-br from-white to-blue-50/30">
@@ -202,16 +202,11 @@ const StoreView = ({ products, userProfile, onSelectProduct, onShowRenewal, onSh
                             </div>
                         </div>
                     </div>
-                    <div className="w-full md:w-80 p-8 flex flex-col justify-center bg-gray-50/30">
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-500">有效期至</span>
-                                <span className="font-bold text-gray-900">2025-12-31</span>
-                            </div>
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="text-gray-500">已购应用</span>
-                                <span className="font-bold text-gray-900">{products.filter((p: any) => p.isOwned).length} 套</span>
-                            </div>
+                    <div className="w-full md:w-72 p-6 flex flex-col justify-center bg-gray-50/30">
+                        <div className="text-center">
+                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">服务有效期</div>
+                            <div className="text-2xl font-black text-gray-900 font-mono mb-1">2025-12-31</div>
+                            <div className="text-xs text-green-600 font-medium">剩余 328 天</div>
                         </div>
                     </div>
                 </div>
@@ -266,8 +261,10 @@ const StoreView = ({ products, userProfile, onSelectProduct, onShowRenewal, onSh
                                             {p.trialDays}天试用
                                         </span>
                                     )}
-                                    {p.isOwned && (
-                                        <span className="text-[9px] bg-gray-100 text-gray-400 font-bold px-1.5 py-0.5 rounded">正在使用</span>
+                                    {p.isOwned && p.purchaseInfo?.expiryDate && (
+                                        <span className="text-[9px] bg-orange-50 text-orange-600 font-bold px-1.5 py-0.5 rounded border border-orange-100">
+                                            有效期至 {p.purchaseInfo.expiryDate}
+                                        </span>
                                     )}
                                 </div>
                             </div>
@@ -300,9 +297,128 @@ const StoreView = ({ products, userProfile, onSelectProduct, onShowRenewal, onSh
     );
 };
 
-const HistoryOrderView = ({ balance, transactions, onShowRecharge, onShowWithdraw, onShowInvoiceConfig, onShowOrderDetail, onShowBatchInvoice }: any) => (
+const BalanceView = ({ balance, transactions, onShowRecharge, onShowWithdraw }: any) => {
+    const [dateFilter, setDateFilter] = useState<'all' | 'month' | 'quarter' | 'year' | 'custom'>('all');
+    const [customDateRange, setCustomDateRange] = useState<{start: string, end: string}>({start: '', end: ''});
+    const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
+    
+    // 只过滤余额相关的交易（充值、提现）
+    const balanceTransactions = transactions.filter((t: any) => t.type === 'recharge' || t.type === 'withdrawal');
+    
+    // 根据日期筛选
+    const filteredTransactions = balanceTransactions.filter((t: any) => {
+        if (dateFilter === 'all') return true;
+        const date = new Date(t.date);
+        const now = new Date();
+        if (dateFilter === 'month') {
+            return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+        }
+        if (dateFilter === 'quarter') {
+            const quarter = Math.floor(now.getMonth() / 3);
+            const tQuarter = Math.floor(date.getMonth() / 3);
+            return tQuarter === quarter && date.getFullYear() === now.getFullYear();
+        }
+        if (dateFilter === 'year') {
+            return date.getFullYear() === now.getFullYear();
+        }
+        if (dateFilter === 'custom' && customDateRange.start && customDateRange.end) {
+            const tDate = new Date(t.date);
+            const start = new Date(customDateRange.start);
+            const end = new Date(customDateRange.end);
+            return tDate >= start && tDate <= end;
+        }
+        return true;
+    });
+    
+    // 根据筛选后的交易计算统计数据
+    const totalRecharge = filteredTransactions
+        .filter((t: any) => t.type === 'recharge')
+        .reduce((sum: number, t: any) => sum + t.amount, 0);
+    const totalWithdraw = filteredTransactions
+        .filter((t: any) => t.type === 'withdrawal')
+        .reduce((sum: number, t: any) => sum + t.amount, 0);
+    
+    // 获取日期筛选标签
+    const getDateFilterLabel = () => {
+        switch(dateFilter) {
+            case 'month': return '本月';
+            case 'quarter': return '本季度';
+            case 'year': return '本年';
+            case 'custom': return '自定义';
+            default: return '全部时间';
+        }
+    };
+    
+    return (
     <div className="w-full space-y-6 animate-in fade-in duration-500">
-        {/* 1. Account Summary Dashboard - Style synced with StoreView's system card */}
+        {/* Global Date Filter Bar - 最高层级 */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <span className="text-sm font-bold text-gray-700">时间范围</span>
+                    <div className="flex bg-gray-100 p-1 rounded-lg">
+                        {['all', 'month', 'quarter', 'year'].map((filter) => (
+                            <button 
+                                key={filter}
+                                onClick={() => {
+                                    setDateFilter(filter as any);
+                                    setShowCustomDatePicker(false);
+                                }}
+                                className={`px-3 py-1.5 text-[11px] font-bold rounded transition-all ${
+                                    dateFilter === filter && !showCustomDatePicker
+                                        ? 'bg-white text-blue-600 shadow-sm' 
+                                        : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                            >
+                                {filter === 'all' ? '全部' : filter === 'month' ? '本月' : filter === 'quarter' ? '本季度' : '本年'}
+                            </button>
+                        ))}
+                    </div>
+                    <button 
+                        onClick={() => {
+                            setDateFilter('custom');
+                            setShowCustomDatePicker(true);
+                        }}
+                        className={`text-[11px] font-bold px-3 py-1.5 rounded transition-all ${
+                            dateFilter === 'custom' || showCustomDatePicker
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        }`}
+                    >
+                        自定义
+                    </button>
+                </div>
+            </div>
+            
+            {/* 自定义日期选择器 */}
+            {showCustomDatePicker && (
+                <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-3 animate-in slide-in-from-top-2">
+                    <span className="text-xs text-gray-500">从</span>
+                    <input 
+                        type="date" 
+                        value={customDateRange.start}
+                        onChange={(e) => setCustomDateRange({...customDateRange, start: e.target.value})}
+                        className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <span className="text-xs text-gray-500">至</span>
+                    <input 
+                        type="date" 
+                        value={customDateRange.end}
+                        onChange={(e) => setCustomDateRange({...customDateRange, end: e.target.value})}
+                        className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <Button 
+                        className="h-8 px-4 text-xs"
+                        disabled={!customDateRange.start || !customDateRange.end}
+                        onClick={() => setShowCustomDatePicker(false)}
+                    >
+                        应用
+                    </Button>
+                </div>
+            )}
+        </div>
+        
+        {/* Statistics Dashboard - 受时间筛选影响 */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-gray-100">
                 {/* Balance Area (Primary Focus) */}
@@ -322,303 +438,503 @@ const HistoryOrderView = ({ balance, transactions, onShowRecharge, onShowWithdra
                     </div>
                 </div>
 
-                {/* Monthly Stats (Contextual Info) */}
+                {/* Monthly Stats - 根据筛选显示 */}
                 <div className="w-full md:w-80 p-8 flex flex-col justify-center bg-gray-50/30">
                     <div className="space-y-6">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center"><TrendingUp size={16} className="rotate-180"/></div>
-                                <span className="text-xs text-gray-500 font-medium">本月支出</span>
+                                <div className="w-8 h-8 rounded-lg bg-green-50 text-green-500 flex items-center justify-center"><Plus size={16}/></div>
+                                <span className="text-xs text-gray-500 font-medium">{getDateFilterLabel()}充值</span>
                             </div>
-                            <span className="text-sm font-black text-gray-900 font-mono">¥ 1,240.00</span>
+                            <span className="text-sm font-black text-green-600 font-mono">+ ¥ {totalRecharge.toFixed(2)}</span>
                         </div>
-                        <div className="flex items-center justify-between group cursor-pointer" onClick={onShowBatchInvoice}>
+                        <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-500 flex items-center justify-center"><Receipt size={16}/></div>
-                                <span className="text-xs text-gray-500 font-medium group-hover:text-orange-600 transition-colors">待开发票</span>
+                                <div className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center"><ArrowRight size={16} className="rotate-180"/></div>
+                                <span className="text-xs text-gray-500 font-medium">{getDateFilterLabel()}提现</span>
                             </div>
-                            <div className="flex items-center gap-1.5 text-orange-600">
-                                <span className="text-sm font-black font-mono">¥ 850.00</span>
-                                <ChevronRight size={14} />
-                            </div>
+                            <span className="text-sm font-black text-gray-900 font-mono">- ¥ {totalWithdraw.toFixed(2)}</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        {/* 2. Transaction Management Area */}
+        {/* Balance Transaction Table */}
         <div className="space-y-4">
-            <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-bold text-gray-900">收支明细</h3>
-                    <div className="flex bg-gray-100 p-1 rounded-lg">
-                        <button className="px-3 py-1 text-[10px] font-bold bg-white text-blue-600 rounded shadow-sm">全部记录</button>
-                        <button className="px-3 py-1 text-[10px] font-bold text-gray-400 hover:text-gray-600">支出</button>
-                        <button className="px-3 py-1 text-[10px] font-bold text-gray-400 hover:text-gray-600">充值</button>
-                    </div>
+            {/* Table */}
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                {/* Table Header Row */}
+                <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-600 items-center">
+                    <div className="col-span-3">交易类型</div>
+                    <div className="col-span-3">交易信息</div>
+                    <div className="col-span-2">时间</div>
+                    <div className="col-span-2 text-right">金额</div>
+                    <div className="col-span-2 text-center">状态</div>
                 </div>
-                <Button variant="ghost" className="h-8 px-3 text-[11px] text-gray-500" onClick={onShowInvoiceConfig}>
-                    <Settings size={14} /> 发票抬头设置
-                </Button>
-            </div>
 
-            {/* List based on the same logic as "My Apps" card list but more concise */}
-            <div className="grid grid-cols-1 gap-3">
-                {transactions.map((t: any) => (
-                    <div 
-                        key={t.id} 
-                        className="group bg-white rounded-xl border border-gray-100 p-4 hover:border-blue-400 hover:shadow-md transition-all duration-200 cursor-pointer flex items-center justify-between"
-                        onClick={() => onShowOrderDetail(t)}
-                    >
-                        <div className="flex items-center gap-4 flex-1">
-                            {/* Visual Category Icon - Consistently Styled */}
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                                t.type === 'recharge' ? 'bg-green-50 text-green-600' : 
-                                t.type === 'withdrawal' ? 'bg-slate-50 text-slate-400' : 
-                                'bg-blue-50 text-blue-600'
-                            }`}>
-                                {t.type === 'recharge' ? <Plus size={20}/> : t.type === 'withdrawal' ? <ArrowRight size={20} className="rotate-180"/> : <ShoppingBag size={18}/>}
-                            </div>
-                            
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                    <h4 className="font-bold text-gray-900 truncate">{t.item}</h4>
-                                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border uppercase ${
-                                        t.status === 'success' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-amber-50 text-amber-600 border-amber-100 animate-pulse'
-                                    }`}>
-                                        {t.status === 'success' ? 'SUCCESS' : 'PENDING'}
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-3 text-[10px] text-gray-400">
-                                    <span className="font-mono">{t.orderNo}</span>
-                                    <span>•</span>
-                                    <span>{t.date}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-8 pl-6">
-                            {/* Financial Data - Clearly prominent */}
-                            <div className="text-right">
-                                <div className={`text-lg font-black font-mono tracking-tighter ${t.type === 'recharge' ? 'text-green-600' : 'text-gray-900'}`}>
-                                    {t.type === 'recharge' ? '+' : '-'} ¥{t.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                </div>
-                                <div className="text-[10px] text-gray-400">
-                                    {t.type === 'recharge' ? '充值到账' : t.type === 'withdrawal' ? '余额提现' : '应用订购支出'}
-                                </div>
-                            </div>
-
-                            {/* Secondary Actions / Status */}
-                            <div className="flex items-center gap-3 w-24 justify-end">
-                                {t.type === 'expense' && !t.invoiced && (
-                                    <button 
-                                        type="button" 
-                                        className="text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded border border-orange-100 hover:bg-orange-100 transition-colors"
-                                        onClick={(e) => { e.stopPropagation(); alert('发起开票申请...'); }}
-                                    >
-                                        申请开票
-                                    </button>
-                                )}
-                                {t.invoiced && (
-                                    <div className="text-[10px] text-gray-300 font-bold flex items-center gap-1">
-                                        <CheckCircle2 size={12}/> 已开票
+                {/* Table Body */}
+                {filteredTransactions.length > 0 ? (
+                    <div className="divide-y divide-gray-100">
+                        {filteredTransactions.map((t: any) => (
+                            <div 
+                                key={t.id} 
+                                className="grid grid-cols-12 gap-4 px-4 py-4 items-center hover:bg-gray-50 transition-colors"
+                            >
+                                {/* 交易类型 */}
+                                <div className="col-span-3">
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                            t.type === 'recharge' ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-400'
+                                        }`}>
+                                            {t.type === 'recharge' ? <Plus size={16}/> : <ArrowRight size={16} className="rotate-180"/>}
+                                        </div>
+                                        <span className="font-bold text-gray-900 text-sm">
+                                            {t.type === 'recharge' ? '充值' : '提现'}
+                                        </span>
                                     </div>
-                                )}
-                                <ChevronRight size={16} className="text-gray-300 group-hover:text-blue-500 transition-colors" />
+                                </div>
+                                
+                                {/* 交易信息 */}
+                                <div className="col-span-3">
+                                    <div className="font-medium text-gray-900 text-sm">{t.item}</div>
+                                    <div className="text-[10px] text-gray-400 font-mono mt-0.5">{t.orderNo}</div>
+                                </div>
+                                
+                                {/* 时间 */}
+                                <div className="col-span-2">
+                                    <div className="text-xs text-gray-600">{t.date}</div>
+                                </div>
+                                
+                                {/* 金额 */}
+                                <div className="col-span-2 text-right">
+                                    <div className={`text-sm font-black font-mono ${t.type === 'recharge' ? 'text-green-600' : 'text-gray-900'}`}>
+                                        {t.type === 'recharge' ? '+' : '-'} ¥{t.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    </div>
+                                </div>
+                                
+                                {/* 状态 */}
+                                <div className="col-span-2 text-center">
+                                    {t.status === 'success' ? (
+                                        <span className="text-[10px] bg-green-50 text-green-600 px-2 py-0.5 rounded border border-green-100">
+                                            已完成
+                                        </span>
+                                    ) : (
+                                        <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded border border-amber-100">
+                                            处理中
+                                        </span>
+                                    )}
+                                </div>
                             </div>
-                        </div>
+                        ))}
                     </div>
-                ))}
+                ) : (
+                    <div className="text-center py-12">
+                        <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-300">
+                            <Wallet size={24} />
+                        </div>
+                        <p className="text-gray-400 text-sm">{dateFilter === 'all' ? '暂无余额交易记录' : '该时间段内暂无交易'}</p>
+                    </div>
+                )}
             </div>
 
-            {/* Load More Control - Standardised with store logic */}
-            <div className="pt-4 text-center">
-                <button className="text-[10px] font-bold text-gray-400 hover:text-blue-600 transition-colors flex items-center gap-2 mx-auto">
-                    <RefreshCw size={12} /> 加载更多历史账单
-                </button>
-            </div>
+            {/* Load More */}
+            {filteredTransactions.length > 0 && (
+                <div className="pt-2 text-center">
+                    <button className="text-[10px] font-bold text-gray-400 hover:text-blue-600 transition-colors flex items-center gap-2 mx-auto">
+                        <RefreshCw size={12} /> 加载更多记录
+                    </button>
+                </div>
+            )}
         </div>
     </div>
-);
+    );
+};
 
-const OrdersView = ({ products, onSelectProduct, onShowAuthModal, onShowRenewal }: any) => {
-    const [filter, setFilter] = useState<'all' | 'expiring'>('all');
+const OrdersView = ({ transactions, onShowBatchInvoice }: any) => {
+    const [dateFilter, setDateFilter] = useState<'all' | 'month' | 'quarter' | 'year' | 'custom'>('all');
+    const [customDateRange, setCustomDateRange] = useState<{start: string, end: string}>({start: '', end: ''});
+    const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
+    const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
+    const [showBatchMode, setShowBatchMode] = useState(false);
     
-    const ownedProducts = products
-        .filter((p: any) => p.isOwned)
-        .filter((p: any) => filter === 'all' || p.purchaseInfo?.status === 'expiring')
-        .sort((a: any, b: any) => (a.purchaseInfo?.daysLeft || 9999) - (b.purchaseInfo?.daysLeft || 9999));
+    // 只显示应用购买相关的交易（expense类型）
+    const orderTransactions = transactions.filter((t: any) => t.type === 'expense');
     
-    const expiringCount = products.filter((p: any) => p.isOwned && p.purchaseInfo?.status === 'expiring').length;
-
+    // 根据日期筛选订单
+    const filteredTransactions = orderTransactions.filter((t: any) => {
+        if (dateFilter === 'all') return true;
+        const date = new Date(t.date);
+        const now = new Date();
+        
+        if (dateFilter === 'month') {
+            return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+        }
+        if (dateFilter === 'quarter') {
+            const quarter = Math.floor(now.getMonth() / 3);
+            const tQuarter = Math.floor(date.getMonth() / 3);
+            return tQuarter === quarter && date.getFullYear() === now.getFullYear();
+        }
+        if (dateFilter === 'year') {
+            return date.getFullYear() === now.getFullYear();
+        }
+        if (dateFilter === 'custom' && customDateRange.start && customDateRange.end) {
+            const tDate = new Date(t.date);
+            const start = new Date(customDateRange.start);
+            const end = new Date(customDateRange.end);
+            return tDate >= start && tDate <= end;
+        }
+        return true;
+    });
+    
+    // 根据筛选后的订单计算统计数据
+    const totalOrders = filteredTransactions.length;
+    const totalAmount = filteredTransactions.reduce((sum: number, t: any) => sum + t.amount, 0);
+    const pendingInvoiceAmount = filteredTransactions
+        .filter((t: any) => !t.invoiced && t.status === 'success')
+        .reduce((sum: number, t: any) => sum + t.amount, 0);
+    const pendingInvoiceCount = filteredTransactions.filter((t: any) => !t.invoiced && t.status === 'success').length;
+    
+    // 处理订单选择（批量开票用）
+    const toggleOrderSelection = (orderId: string) => {
+        const newSelected = new Set(selectedOrders);
+        if (newSelected.has(orderId)) {
+            newSelected.delete(orderId);
+        } else {
+            newSelected.add(orderId);
+        }
+        setSelectedOrders(newSelected);
+    };
+    
+    // 全选/取消全选
+    const toggleSelectAll = () => {
+        if (selectedOrders.size === filteredTransactions.filter((t: any) => !t.invoiced).length) {
+            setSelectedOrders(new Set());
+        } else {
+            const allIds = filteredTransactions
+                .filter((t: any) => !t.invoiced)
+                .map((t: any) => t.id);
+            setSelectedOrders(new Set(allIds));
+        }
+    };
+    
+    // 获取日期筛选标签
+    const getDateFilterLabel = () => {
+        switch(dateFilter) {
+            case 'month': return '本月';
+            case 'quarter': return '本季度';
+            case 'year': return '本年';
+            case 'custom': return '自定义';
+            default: return '全部时间';
+        }
+    };
+    
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            {/* Actionable Statistics Dashboard */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div 
-                    onClick={() => setFilter('all')}
-                    className={`cursor-pointer p-5 rounded-2xl border transition-all duration-300 flex items-center gap-4 ${filter === 'all' ? 'bg-white border-blue-500 shadow-md ring-1 ring-blue-500/20' : 'bg-white/50 border-gray-100 hover:bg-white shadow-sm'}`}
-                >
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${filter === 'all' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'}`}>
-                        <Package size={24}/>
+            {/* Global Date Filter Bar - 最高层级 */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <span className="text-sm font-bold text-gray-700">时间范围</span>
+                        <div className="flex bg-gray-100 p-1 rounded-lg">
+                            {['all', 'month', 'quarter', 'year'].map((filter) => (
+                                <button 
+                                    key={filter}
+                                    onClick={() => {
+                                        setDateFilter(filter as any);
+                                        setShowCustomDatePicker(false);
+                                    }}
+                                    className={`px-3 py-1.5 text-[11px] font-bold rounded transition-all ${
+                                        dateFilter === filter && !showCustomDatePicker
+                                            ? 'bg-white text-blue-600 shadow-sm' 
+                                            : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    {filter === 'all' ? '全部' : filter === 'month' ? '本月' : filter === 'quarter' ? '本季度' : '本年'}
+                                </button>
+                            ))}
+                        </div>
+                        <button 
+                            onClick={() => {
+                                setDateFilter('custom');
+                                setShowCustomDatePicker(true);
+                            }}
+                            className={`text-[11px] font-bold px-3 py-1.5 rounded transition-all ${
+                                dateFilter === 'custom' || showCustomDatePicker
+                                    ? 'bg-blue-600 text-white' 
+                                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                            }`}
+                        >
+                            自定义
+                        </button>
                     </div>
-                    <div>
-                        <div className="text-sm text-gray-400 font-medium">已启用服务</div>
-                        <div className="text-2xl font-black text-gray-900">{products.filter((p: any) => p.isOwned).length} <span className="text-xs font-normal text-gray-400 ml-1">个</span></div>
+                    
+                    {/* 批量开票控制 */}
+                    <div className="flex items-center gap-2">
+                        {showBatchMode ? (
+                            <>
+                                <span className="text-xs text-gray-500">
+                                    已选 {selectedOrders.size} 笔，合计 ¥{filteredTransactions
+                                        .filter((t: any) => selectedOrders.has(t.id))
+                                        .reduce((sum: number, t: any) => sum + t.amount, 0)
+                                        .toFixed(2)}
+                                </span>
+                                <Button 
+                                    variant="secondary" 
+                                    className="h-8 px-3 text-xs"
+                                    onClick={() => { setShowBatchMode(false); setSelectedOrders(new Set()); }}
+                                >
+                                    取消
+                                </Button>
+                                <Button 
+                                    className="h-8 px-3 text-xs"
+                                    disabled={selectedOrders.size === 0}
+                                    onClick={() => onShowBatchInvoice && onShowBatchInvoice(Array.from(selectedOrders))}
+                                >
+                                    <Receipt size={14} /> 批量开票
+                                </Button>
+                            </>
+                        ) : (
+                            <Button 
+                                variant="ghost" 
+                                className="h-8 px-3 text-xs text-gray-500"
+                                onClick={() => setShowBatchMode(true)}
+                            >
+                                <Receipt size={14} /> 批量开票
+                            </Button>
+                        )}
                     </div>
                 </div>
                 
-                <div 
-                    onClick={() => setFilter('expiring')}
-                    className={`cursor-pointer p-5 rounded-2xl border transition-all duration-300 flex items-center gap-4 ${filter === 'expiring' ? 'bg-orange-50 border-orange-500 shadow-md ring-1 ring-orange-500/20' : 'bg-white/50 border-gray-100 hover:bg-white shadow-sm'}`}
-                >
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${filter === 'expiring' ? 'bg-orange-500 text-white' : 'bg-orange-50 text-orange-600'}`}>
-                        <Clock size={24}/>
+                {/* 自定义日期选择器 */}
+                {showCustomDatePicker && (
+                    <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-3 animate-in slide-in-from-top-2">
+                        <span className="text-xs text-gray-500">从</span>
+                        <input 
+                            type="date" 
+                            value={customDateRange.start}
+                            onChange={(e) => setCustomDateRange({...customDateRange, start: e.target.value})}
+                            className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <span className="text-xs text-gray-500">至</span>
+                        <input 
+                            type="date" 
+                            value={customDateRange.end}
+                            onChange={(e) => setCustomDateRange({...customDateRange, end: e.target.value})}
+                            className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <Button 
+                            className="h-8 px-4 text-xs"
+                            disabled={!customDateRange.start || !customDateRange.end}
+                            onClick={() => setShowCustomDatePicker(false)}
+                        >
+                            应用
+                        </Button>
                     </div>
-                    <div>
-                        <div className="text-sm text-gray-400 font-medium">即将到期 / 待续费</div>
-                        <div className="text-2xl font-black text-orange-600">
-                            {expiringCount} <span className="text-xs font-normal text-gray-400 ml-1">个</span>
-                            {expiringCount > 0 && <span className="ml-3 text-[10px] bg-red-500 text-white px-2 py-0.5 rounded-full animate-bounce">需处理</span>}
-                        </div>
-                    </div>
-                </div>
+                )}
             </div>
-
-            {/* List Header & Global Entry */}
-            <div className="flex justify-between items-center px-2 pt-2">
-                <div className="flex items-center gap-3">
-                    <h2 className="text-lg font-black text-gray-900">
-                        {filter === 'expiring' ? '待续费清单' : ' 我的应用列表'}
-                    </h2>
-                    {filter !== 'all' && (
-                        <button onClick={() => setFilter('all')} className="text-[10px] text-blue-600 font-bold hover:underline">返回全部</button>
-                    )}
-                </div>
-                <Button variant="outline" className="text-xs h-8 bg-white border-gray-200" onClick={onShowAuthModal}>
-                    <ShieldCheck size={14} className="text-blue-600" /> 门店使用情况
-                </Button>
-            </div>
-
-            {/* Application Card List */}
-            <div className="grid grid-cols-1 gap-4">
-                {ownedProducts.length > 0 ? (
-                    ownedProducts.map((p: any) => {
-                        const isExpiring = p.purchaseInfo?.status === 'expiring';
-                        return (
-                            <div 
-                                key={p.id} 
-                                className={`group bg-white rounded-2xl border transition-all duration-300 overflow-hidden cursor-pointer ${
-                                    isExpiring 
-                                    ? 'border-orange-200 shadow-orange-100/50 shadow-lg ring-1 ring-orange-500/5 hover:border-orange-400' 
-                                    : 'border-gray-100 hover:border-blue-400 shadow-sm hover:shadow-xl'
-                                }`}
-                                onClick={() => onSelectProduct(p)}
-                            >
-                                <div className="p-6">
-                                    <div className="flex flex-col lg:flex-row gap-6">
-                                        {/* Product Basic Info */}
-                                        <div className="flex gap-4 min-w-[280px]">
-                                            <div className={`w-16 h-16 rounded-2xl ${p.imageColor} flex items-center justify-center text-gray-700 shadow-inner group-hover:scale-105 transition-transform duration-300`}>
-                                                {p.type === 'software' ? <Smartphone size={32} /> : <Activity size={32} />}
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <h3 className="font-black text-xl text-gray-900 group-hover:text-blue-600 transition-colors">{p.title}</h3>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${isExpiring ? 'bg-orange-500 text-white animate-pulse' : 'bg-green-100 text-green-700'}`}>
-                                                        {isExpiring ? '● 即将到期' : '● 运行中'}
-                                                    </span>
-                                                    <span className="text-xs text-gray-400 flex items-center gap-1"><Monitor size={12}/> {p.type === 'hardware' ? '硬件设备' : '系统软件'}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Expiry & Metrics */}
-                                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            <div className="space-y-3">
-                                                <div className="flex justify-between text-xs font-medium">
-                                                    <span className="text-gray-400 italic">有效期至: <span className="text-gray-900 not-italic">{p.purchaseInfo?.expiryDate}</span></span>
-                                                    {p.purchaseInfo?.daysLeft && p.purchaseInfo.daysLeft < 30 && (
-                                                        <span className="text-red-500 font-bold">仅剩 {p.purchaseInfo.daysLeft} 天</span>
-                                                    )}
-                                                </div>
-                                                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                                    <div 
-                                                        className={`h-full rounded-full transition-all duration-1000 ${isExpiring ? 'bg-gradient-to-r from-orange-500 to-red-500' : 'bg-blue-500'}`}
-                                                        style={{ width: `${Math.min(100, (p.purchaseInfo?.daysLeft || 0) / 3.65)}%` }}
-                                                    ></div>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    {p.scope === 'all_stores' ? (
-                                                        <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded border border-blue-100 font-bold uppercase">全门店通用</span>
-                                                    ) : (
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {p.purchaseInfo?.authorizedStores?.slice(0, 2).map((s: string) => (
-                                                                <span key={s} className="text-[10px] bg-gray-50 text-gray-500 px-1.5 py-0.5 rounded border border-gray-100 truncate max-w-[80px] font-medium">{s}</span>
-                                                            ))}
-                                                            {p.purchaseInfo?.authorizedStores && p.purchaseInfo.authorizedStores.length > 2 && (
-                                                                <span className="text-[10px] text-gray-400 font-bold">+{p.purchaseInfo.authorizedStores.length - 2}</span>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div className="lg:col-span-2">
-                                                {p.purchaseInfo?.usageMetrics ? (
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        {p.purchaseInfo.usageMetrics.map((metric: any, idx: number) => (
-                                                            <div key={idx} className="bg-gray-50/50 p-3 rounded-xl border border-gray-50 group-hover:bg-white group-hover:border-blue-50 transition-colors">
-                                                                <div className="flex justify-between items-center mb-1.5">
-                                                                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-tight">{metric.label}</span>
-                                                                    <span className="text-xs font-black text-gray-900 font-mono">{metric.value}</span>
-                                                                </div>
-                                                                <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
-                                                                    <div className="h-full bg-blue-400 rounded-full transition-all duration-700" style={{ width: `${metric.percent}%` }}></div>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    <div className="h-full flex items-center justify-center border-2 border-dashed border-gray-50 rounded-2xl bg-gray-50/20">
-                                                        <span className="text-[10px] text-gray-300 font-medium flex items-center gap-2"><Activity size={12}/> 系统监测中...</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Action Area - Smart Buttons */}
-                                        <div className="flex lg:flex-col items-center justify-center gap-2.5 border-t lg:border-t-0 lg:border-l border-gray-100 pt-4 lg:pt-0 lg:pl-6 min-w-[160px]">
-                                            {isExpiring && (
-                                                <Button 
-                                                    className="w-full lg:w-36 bg-orange-500 hover:bg-orange-600 text-white text-xs h-10 font-black shadow-lg shadow-orange-100 animate-in slide-in-from-right-2" 
-                                                    onClick={(e: React.MouseEvent) => { e.stopPropagation(); onShowRenewal(); }}
-                                                >
-                                                    <RefreshCw size={14} /> 立即续费
-                                                </Button>
-                                            )}
-                                            <Button 
-                                                className={`w-full lg:w-36 text-xs h-10 font-bold transition-all ${isExpiring ? 'bg-gray-900 hover:bg-black text-white shadow-sm' : 'bg-gray-900 hover:bg-black text-white'}`} 
-                                                onClick={(e: React.MouseEvent) => { e.stopPropagation(); alert(`正在进入 ${p.title} 管理后台...`); }}
-                                            >
-                                                前往设置
-                                            </Button>
-                                        </div>
-                                    </div>
+            
+            {/* Statistics Dashboard - 受时间筛选影响 */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-gray-100">
+                    {/* Left: Summary */}
+                    <div className="flex-1 p-8 bg-gradient-to-br from-white to-blue-50/30">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                                    {getDateFilterLabel()}订单金额
+                                </div>
+                                <div className="flex items-baseline gap-1">
+                                    <span className="text-sm font-bold text-gray-900">¥</span>
+                                    <span className="text-4xl font-black text-gray-900 font-mono tracking-tight">
+                                        {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    </span>
                                 </div>
                             </div>
-                        );
-                    })
-                ) : (
-                    <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-100">
-                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
-                            <Package size={32} />
                         </div>
-                        <h3 className="text-gray-900 font-bold">暂无相关应用</h3>
-                        <p className="text-sm text-gray-400 mt-1">切换筛选条件或前往选购中心看看</p>
+                    </div>
+
+                    {/* Right: Stats */}
+                    <div className="w-full md:w-80 p-8 flex flex-col justify-center bg-gray-50/30">
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center">
+                                        <ShoppingBag size={16}/>
+                                    </div>
+                                    <span className="text-xs text-gray-500 font-medium">订单数量</span>
+                                </div>
+                                <span className="text-sm font-black text-gray-900 font-mono">{totalOrders} 笔</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-500 flex items-center justify-center">
+                                        <Receipt size={16}/>
+                                    </div>
+                                    <span className="text-xs text-gray-500 font-medium">待开发票</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-orange-600">
+                                    <span className="text-sm font-black font-mono">¥ {pendingInvoiceAmount.toFixed(2)}</span>
+                                    {pendingInvoiceCount > 0 && (
+                                        <span className="text-[10px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded">{pendingInvoiceCount}笔</span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Order List - 表格布局 */}
+            <div className="space-y-4">
+                {/* Table */}
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    {/* Table Header Row - 合并标题和表头 */}
+                    <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-600 items-center">
+                        {showBatchMode && (
+                            <div className="col-span-1 flex items-center gap-2">
+                                <input 
+                                    type="checkbox"
+                                    checked={selectedOrders.size === filteredTransactions.filter((t: any) => !t.invoiced).length && filteredTransactions.filter((t: any) => !t.invoiced).length > 0}
+                                    onChange={toggleSelectAll}
+                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span>选择</span>
+                            </div>
+                        )}
+                        <div className={`${showBatchMode ? 'col-span-2' : 'col-span-3'}`}>应用名称</div>
+                        <div className="col-span-2">订单信息</div>
+                        <div className="col-span-2">有效期</div>
+                        <div className="col-span-1 text-center">优惠</div>
+                        <div className="col-span-1 text-center">支付方式</div>
+                        <div className="col-span-1 text-right">实付金额</div>
+                        <div className="col-span-1 text-center">状态</div>
+                        <div className="col-span-1 text-center">操作</div>
+                    </div>
+
+                    {/* Table Body */}
+                    {filteredTransactions.length > 0 ? (
+                        <div className="divide-y divide-gray-100">
+                            {filteredTransactions.map((t: any) => (
+                                <div 
+                                    key={t.id} 
+                                    className="grid grid-cols-12 gap-4 px-4 py-4 items-center hover:bg-gray-50 transition-colors"
+                                >
+                                    {/* 选择列（批量模式） */}
+                                    {showBatchMode && (
+                                        <div className="col-span-1 flex justify-center">
+                                            {!t.invoiced ? (
+                                                <input 
+                                                    type="checkbox"
+                                                    checked={selectedOrders.has(t.id)}
+                                                    onChange={() => toggleOrderSelection(t.id)}
+                                                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                />
+                                            ) : (
+                                                <CheckCircle2 size={16} className="text-green-500" />
+                                            )}
+                                        </div>
+                                    )}
+                                    
+                                    {/* 应用名称 */}
+                                    <div className={`${showBatchMode ? 'col-span-2' : 'col-span-3'}`}>
+                                        <div className="font-bold text-gray-900 text-sm">{t.item}</div>
+                                        <div className="text-[10px] text-gray-400 font-mono mt-0.5">{t.orderNo}</div>
+                                    </div>
+                                    
+                                    {/* 订单信息 */}
+                                    <div className="col-span-2">
+                                        <div className="text-xs text-gray-600">{t.date}</div>
+                                        {t.duration && (
+                                            <div className="text-[10px] text-gray-400 mt-0.5">{t.duration}</div>
+                                        )}
+                                    </div>
+                                    
+                                    {/* 有效期 */}
+                                    <div className="col-span-2">
+                                        <div className="text-xs text-orange-600 font-medium">
+                                            至 {t.expiryDate || '2025-12-31'}
+                                        </div>
+                                    </div>
+                                    
+                                    {/* 优惠 */}
+                                    <div className="col-span-1 text-center">
+                                        {t.originalAmount && t.originalAmount > t.amount ? (
+                                            <span className="text-xs text-red-500 font-medium">
+                                                -¥{(t.originalAmount - t.amount).toFixed(0)}
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs text-gray-300">--</span>
+                                        )}
+                                    </div>
+                                    
+                                    {/* 支付方式 */}
+                                    <div className="col-span-1 text-center">
+                                        <span className="text-xs text-gray-600">{t.paymentMethod || '--'}</span>
+                                    </div>
+                                    
+                                    {/* 实付金额 */}
+                                    <div className="col-span-1 text-right">
+                                        <div className="text-sm font-black text-gray-900 font-mono">
+                                            ¥{t.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                        </div>
+                                        {t.originalAmount && t.originalAmount > t.amount && (
+                                            <div className="text-[10px] text-gray-400 line-through">
+                                                ¥{t.originalAmount.toFixed(2)}
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {/* 状态 */}
+                                    <div className="col-span-1 text-center">
+                                        {t.status === 'success' ? (
+                                            <span className="text-[10px] bg-green-50 text-green-600 px-2 py-0.5 rounded border border-green-100">
+                                                已完成
+                                            </span>
+                                        ) : (
+                                            <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded border border-amber-100">
+                                                处理中
+                                            </span>
+                                        )}
+                                    </div>
+                                    
+                                    {/* 操作 */}
+                                    <div className="col-span-1 text-center">
+                                        {!showBatchMode && (
+                                            <div className="flex items-center justify-center gap-1">
+                                                {!t.invoiced && t.status === 'success' && (
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); alert(`为订单 ${t.orderNo} 申请开票`); }}
+                                                        className="text-[10px] font-bold text-blue-600 hover:text-blue-700 px-2 py-1 rounded hover:bg-blue-50 transition-colors"
+                                                    >
+                                                        开票
+                                                    </button>
+                                                )}
+                                                {t.invoiced && (
+                                                    <span className="text-[10px] text-gray-400">已开票</span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-12">
+                            <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-300">
+                                <ShoppingBag size={24} />
+                            </div>
+                            <p className="text-gray-400 text-sm">{dateFilter === 'all' ? '暂无订单记录' : '该时间段内暂无订单'}</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Load More */}
+                {filteredTransactions.length > 0 && (
+                    <div className="pt-2 text-center">
+                        <button className="text-[10px] font-bold text-gray-400 hover:text-blue-600 transition-colors flex items-center gap-2 mx-auto">
+                            <RefreshCw size={12} /> 加载更多记录
+                        </button>
                     </div>
                 )}
             </div>
@@ -654,6 +970,8 @@ export default function AppStoreDemo() {
     const [viewingDevice, setViewingDevice] = useState<any>(null);
 
     const [pendingOrder, setPendingOrder] = useState<any>(null);
+    const [completedOrder, setCompletedOrder] = useState<any>(null);
+    const [showPurchaseSuccessModal, setShowPurchaseSuccessModal] = useState(false);
     const [orderDuration, setOrderDuration] = useState(1);
     const [paymentMethod, setPaymentMethod] = useState('wechat'); 
     const [invoiceInfo, setInvoiceInfo] = useState(INITIAL_INVOICE_INFO);
@@ -807,24 +1125,17 @@ export default function AppStoreDemo() {
         setTransactions(prev => [newTransaction, ...prev]);
         setShowPurchaseModal(false);
         
+        // 保存完成的订单信息用于成功页面展示
+        setCompletedOrder({
+            ...pendingOrder,
+            finalTransaction: newTransaction,
+            paymentMethodLabel: getPaymentMethodLabel(paymentMethod),
+            isCorporate: paymentMethod === 'corporate'
+        });
+        
         setTimeout(() => {
-            let msg = '';
-            if (paymentMethod === 'corporate') {
-                msg = "📝 订单提交成功！\n\n款项到达专属账户后，系统将自动为您激活服务，您可随时在【已购应用】中查看。";
-            } else {
-                if (pendingOrder.type === 'renewal') msg = `🎉 续费成功！\n\n有效期已延长至 ${2025 + (pendingOrder.payload?.years || 1)}-12-31`;
-                else if (pendingOrder.type === 'upgrade') msg = `🎉 升级成功！\n\n欢迎使用${pendingOrder.title.split(' ')[0]}，新权益已生效。`;
-                else {
-                    const isHardware = pendingOrder.payload?.features?.some((f: string) => f.includes('打印') || f.includes('盒子') || f.includes('检测'));
-                    msg = isHardware ? `🎉 支付成功！
-
-硬件设备将尽快发货，请留意短信通知。` : `🎉 支付成功！
-
-请前往【已购功能】查看。`;
-                }
-            }
-            alert(msg);
-        }, 500);
+            setShowPurchaseSuccessModal(true);
+        }, 300);
         
         if (selectedProduct) setSelectedProduct(null);
         setPendingOrder(null);
@@ -1023,13 +1334,13 @@ export default function AppStoreDemo() {
                     </div>
                     <nav className="hidden md:flex h-full">
                         <button type="button" onClick={() => setActiveTab('store')} className={`px-4 h-full border-b-2 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'store' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}><ShoppingBag size={16} /> 选购中心</button>
-                        <button type="button" onClick={() => setActiveTab('orders')} className={`px-4 h-full border-b-2 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'orders' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}><Package size={16} /> 我的应用</button>
+                        <button type="button" onClick={() => setActiveTab('orders')} className={`px-4 h-full border-b-2 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === 'orders' ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}><Package size={16} /> 订单管理</button>
                     </nav>
-                    <div className="flex items-center gap-4">
-                        <div 
-                            className={`flex items-center gap-2.5 cursor-pointer px-3 py-1.5 rounded-lg transition-all ${activeTab === 'wallet' ? 'bg-blue-50 ring-1 ring-blue-200' : 'hover:bg-gray-50 border border-transparent'}`} 
+                    <div className="flex items-center gap-2">
+                        <button 
+                            type="button"
                             onClick={() => setActiveTab('wallet')}
-                            title="点击进入财务中心"
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${activeTab === 'wallet' ? 'bg-blue-50 ring-1 ring-blue-200' : 'hover:bg-gray-50 border border-transparent'}`}
                         >
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${activeTab === 'wallet' ? 'bg-blue-600 text-white shadow-sm' : 'bg-gray-100 text-gray-500'}`}>
                                 <Wallet size={16} />
@@ -1038,8 +1349,7 @@ export default function AppStoreDemo() {
                                 <div className="text-[10px] text-gray-400 font-bold uppercase leading-none mb-1">账户余额</div>
                                 <div className={`text-sm font-black font-mono leading-none ${activeTab === 'wallet' ? 'text-blue-600' : 'text-gray-900'}`}>¥{balance.toFixed(2)}</div>
                             </div>
-                            <ChevronRight size={14} className={`text-gray-300 transition-transform ${activeTab === 'wallet' ? 'rotate-90 text-blue-400' : ''}`} />
-                        </div>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1053,20 +1363,17 @@ export default function AppStoreDemo() {
                     onShowRenewal={initiateRenewal} 
                     onShowUpgrade={() => setShowUpgradeModal(true)} 
                 />}
-                {activeTab === 'wallet' && <HistoryOrderView 
+                {activeTab === 'wallet' && <BalanceView 
                     balance={balance} 
                     transactions={transactions} 
                     onShowRecharge={() => setShowRechargeModal(true)} 
                     onShowWithdraw={() => setShowWithdrawModal(true)} 
-                    onShowInvoiceConfig={() => setShowInvoiceConfigModal(true)} 
                     onShowOrderDetail={setShowOrderDetailModal}
-                    onShowBatchInvoice={() => setShowBatchInvoiceModal(true)}
                 />}
                 {activeTab === 'orders' && <OrdersView 
-                    products={PRODUCTS} 
-                    onSelectProduct={setSelectedProduct} 
-                    onShowAuthModal={() => setShowAuthModal(true)} 
-                    onShowRenewal={initiateRenewal}
+                    transactions={transactions}
+                    onShowOrderDetail={setShowOrderDetailModal}
+                    onShowBatchInvoice={() => setShowBatchInvoiceModal(true)}
                 />}
                 </div>
             </main>
@@ -1862,6 +2169,104 @@ export default function AppStoreDemo() {
                         </Button>
                     </div>
                 </div>
+            </Modal>
+
+            {/* Purchase Success Modal */}
+            <Modal isOpen={showPurchaseSuccessModal} onClose={() => setShowPurchaseSuccessModal(false)} title="" maxWidth="max-w-lg">
+                {completedOrder && (
+                    <div className="p-8">
+                        {/* 成功图标和标题 */}
+                        <div className="flex flex-col items-center text-center mb-8">
+                            <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center mb-4">
+                                <CheckCircle2 size={32} className="text-white" />
+                            </div>
+                            <h3 className="text-xl font-black text-gray-900">
+                                {completedOrder.isCorporate ? '订单提交成功' : '购买成功'}
+                            </h3>
+                        </div>
+
+                        {/* 订单信息列表 */}
+                        <div className="space-y-4 mb-8">
+                            {/* 服务名称 */}
+                            <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                                <span className="text-sm text-gray-500">服务名称</span>
+                                <span className="text-sm font-bold text-gray-900">{completedOrder.product.name}</span>
+                            </div>
+                            
+                            {/* 开通机构 */}
+                            <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                                <span className="text-sm text-gray-500">开通机构</span>
+                                <span className="text-sm font-bold text-gray-900">康正神奇大药房云上雅居店</span>
+                            </div>
+                            
+                            {/* 开通时长 */}
+                            <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                                <span className="text-sm text-gray-500">开通时长</span>
+                                <span className="text-sm font-bold text-gray-900">
+                                    {completedOrder.pricing.quantity} 年
+                                    {completedOrder.afterPurchase?.expiryDate && (
+                                        <span className="text-xs text-gray-400 ml-1 font-normal">
+                                            (服务于 {completedOrder.afterPurchase.expiryDate} 到期)
+                                        </span>
+                                    )}
+                                </span>
+                            </div>
+                            
+                            {/* 支付方式 */}
+                            <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                                <span className="text-sm text-gray-500">支付方式</span>
+                                <span className="text-sm font-bold text-gray-900">{completedOrder.paymentMethodLabel}</span>
+                            </div>
+                        </div>
+
+                        {/* 订单明细 */}
+                        <div className="mb-8">
+                            <div className="text-sm text-gray-500 mb-3">订单详情</div>
+                            <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                                {/* 产品项 */}
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-gray-700">
+                                        {completedOrder.product.name} × {completedOrder.pricing.quantity}年
+                                    </span>
+                                    <span className="text-sm font-mono text-gray-900">
+                                        ¥{completedOrder.pricing.subtotal.toFixed(2)}
+                                    </span>
+                                </div>
+                                
+                                {/* 优惠 */}
+                                {completedOrder.pricing.discount > 0 && (
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-gray-700">
+                                            新品限时优惠 - {completedOrder.pricing.discountRate}
+                                        </span>
+                                        <span className="text-sm font-mono text-red-500">
+                                            -¥{completedOrder.pricing.discount.toFixed(2)}
+                                        </span>
+                                    </div>
+                                )}
+                                
+                                {/* 合计 */}
+                                <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                                    <span className="text-sm font-bold text-gray-900">合计</span>
+                                    <span className="text-lg font-black text-orange-500 font-mono">
+                                        ¥{completedOrder.pricing.finalAmount.toFixed(2)}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 按钮 */}
+                        <Button 
+                            className="w-full" 
+                            onClick={() => {
+                                setShowPurchaseSuccessModal(false);
+                                setCompletedOrder(null);
+                            }}
+                        >
+                            {completedOrder.isCorporate ? '查看订单' : '立即启用'}
+                        </Button>
+                    </div>
+                )}
             </Modal>
 
             {/* Invoice Config */}
