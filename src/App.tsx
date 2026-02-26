@@ -357,6 +357,25 @@ const BalanceView = ({ balance, transactions, onShowRecharge, onShowWithdraw }: 
     
     return (
     <div className="w-full space-y-6 animate-in fade-in duration-500">
+        {/* Statistics Dashboard - 仅显示余额和按钮 */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="p-8 bg-gradient-to-br from-white to-blue-50/30">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">当前可用余额</div>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-sm font-bold text-gray-900">¥</span>
+                            <span className="text-4xl font-black text-gray-900 font-mono tracking-tight">{balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button className="h-10 px-8 text-sm font-bold shadow-blue-100" onClick={onShowRecharge}>充值</Button>
+                        <Button variant="secondary" className="h-10 px-4 text-sm font-bold bg-white" onClick={onShowWithdraw}>提现</Button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         {/* Filter Bar - 多维度筛选 */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
@@ -465,25 +484,6 @@ const BalanceView = ({ balance, transactions, onShowRecharge, onShowWithdraw }: 
                     </Button>
                 </div>
             )}
-        </div>
-        
-        {/* Statistics Dashboard - 仅显示余额和按钮 */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-8 bg-gradient-to-br from-white to-blue-50/30">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">当前可用余额</div>
-                        <div className="flex items-baseline gap-1">
-                            <span className="text-sm font-bold text-gray-900">¥</span>
-                            <span className="text-4xl font-black text-gray-900 font-mono tracking-tight">{balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                        </div>
-                    </div>
-                    <div className="flex gap-2">
-                        <Button className="h-10 px-8 text-sm font-bold shadow-blue-100" onClick={onShowRecharge}>充值</Button>
-                        <Button variant="secondary" className="h-10 px-4 text-sm font-bold bg-white" onClick={onShowWithdraw}>提现</Button>
-                    </div>
-                </div>
-            </div>
         </div>
 
         {/* Balance Transaction Table */}
