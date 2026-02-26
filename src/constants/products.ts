@@ -26,17 +26,50 @@ export const INITIAL_TRANSACTIONS = [
     { 
         id: 't3', orderNo: 'ORD202311050021', date: '2023-11-05 09:15', item: '微诊所 (微信营销版)', type: 'expense', 
         amount: 1680.00, originalPrice: 1680.00, discount: 0, status: 'success', deliveryStatus: 'delivered', 
-        invoiced: true, paymentMethod: '账户余额', snapshot: { period: '1 年' }
+        invoiced: true, paymentMethod: '钱包余额', snapshot: { period: '1 年' },
+        businessType: '应用购买', transactionType: '购买', operator: '张医生'
     },
     { 
         id: 't2', orderNo: 'REN202310280012', date: '2023-10-28 16:45', item: '智能排队叫号系统 (续费)', type: 'expense', 
         amount: 784.00, originalPrice: 980.00, discount: 196.00, status: 'success', deliveryStatus: 'delivered', 
-        invoiced: false, paymentMethod: '微信支付', snapshot: { period: '3 年 (8折)' }
+        invoiced: false, paymentMethod: '微信支付', snapshot: { period: '3 年 (8折)' },
+        businessType: '应用购买', transactionType: '购买', operator: '李护士'
     },
     { 
         id: 't1', orderNo: 'REC202310240001', date: '2023-10-24 14:20', item: '账户余额充值', type: 'recharge', 
         amount: 2000.00, originalPrice: 2000.00, discount: 0, status: 'success', deliveryStatus: 'delivered', 
-        invoiced: false, paymentMethod: '微信支付', snapshot: { period: '永久有效' }
+        invoiced: false, paymentMethod: '微信支付', snapshot: { period: '永久有效' },
+        businessType: '钱包操作', transactionType: '充值', operator: '王院长'
+    },
+    { 
+        id: 't4', orderNo: 'WTH202310200001', date: '2023-10-20 10:30', item: '余额提现', type: 'withdrawal', 
+        amount: 500.00, originalPrice: 500.00, discount: 0, status: 'success', deliveryStatus: 'delivered', 
+        invoiced: false, paymentMethod: '对公转账', snapshot: { period: '永久有效' },
+        businessType: '钱包操作', transactionType: '提现', operator: '王院长'
+    },
+    { 
+        id: 't5', orderNo: 'ORD202310150008', date: '2023-10-15 14:20', item: '空中药房服务', type: 'expense', 
+        amount: 299.00, originalPrice: 299.00, discount: 0, status: 'success', deliveryStatus: 'delivered', 
+        invoiced: false, paymentMethod: '支付宝', snapshot: { period: '1 年' },
+        businessType: '空中药房', transactionType: '购买', operator: '张医生'
+    },
+    { 
+        id: 't6', orderNo: 'ORD202310100005', date: '2023-10-10 09:00', item: '短信套餐包', type: 'expense', 
+        amount: 199.00, originalPrice: 199.00, discount: 0, status: 'success', deliveryStatus: 'delivered', 
+        invoiced: true, paymentMethod: '钱包余额', snapshot: { period: '1000条' },
+        businessType: '短信购买', transactionType: '购买', operator: '李护士'
+    },
+    { 
+        id: 't7', orderNo: 'UPG202310050003', date: '2023-10-05 16:00', item: '基础版升级专业版', type: 'expense', 
+        amount: 2200.00, originalPrice: 2200.00, discount: 0, status: 'success', deliveryStatus: 'delivered', 
+        invoiced: false, paymentMethod: '微信支付', snapshot: { period: '升级' },
+        businessType: '版本购买', transactionType: '购买', operator: '王院长'
+    },
+    { 
+        id: 't8', orderNo: 'REF202310010002', date: '2023-10-01 11:20', item: '微诊所退款', type: 'refund', 
+        amount: 1680.00, originalPrice: 1680.00, discount: 0, status: 'success', deliveryStatus: 'delivered', 
+        invoiced: false, paymentMethod: '原路退回', snapshot: { period: '退款' },
+        businessType: '应用购买', transactionType: '退款', operator: '张医生'
     }
 ];
 

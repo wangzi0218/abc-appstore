@@ -311,49 +311,57 @@ const BalanceView = ({ balance, transactions, onShowRecharge, onShowWithdraw }: 
     const [customDateRange, setCustomDateRange] = useState<{start: string, end: string}>({start: '', end: ''});
     const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
     
-    // 只过滤余额相关的交易（充值、提现）
-    const balanceTransactions = transactions.filter((t: any) => t.type === 'recharge' || t.type === 'withdrawal');
+    // 新增筛选状态
+    const [businessTypeFilter, setBusinessTypeFilter] = useState<string>('all');
+    const [transactionTypeFilter, setTransactionTypeFilter] = useState<string>('all');
+    const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('all');
     
-    // 根据日期筛选
-    const filteredTransactions = balanceTransactions.filter((t: any) => {
-        if (dateFilter === 'all') return true;
-        const date = new Date(t.date);
-        const now = new Date();
-        if (dateFilter === 'month') {
-            return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    // 筛选选项
+    const BUSINESS_TYPES = ['all', '空中药房', 'B2B商城', '短信购买', '版本购买', '云检仪器购买', '钱包操作'];
+    const TRANSACTION_TYPES = ['all', '购买', '充值', '提现', '退款'];
+    const PAYMENT_METHODS = ['all', '钱包余额', '微信支付', '支付宝', '对公转账'];
+    
+    // 综合筛选逻辑
+    const filteredTransactions = transactions.filter((t: any) => {
+        // 日期筛选
+        if (dateFilter !== 'all') {
+            const date = new Date(t.date);
+            const now = new Date();
+            if (dateFilter === 'month') {
+                if (!(date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear())) return false;
+            } else if (dateFilter === 'quarter') {
+                const quarter = Math.floor(now.getMonth() / 3);
+                const tQuarter = Math.floor(date.getMonth() / 3);
+                if (!(tQuarter === quarter && date.getFullYear() === now.getFullYear())) return false;
+            } else if (dateFilter === 'year') {
+                if (!(date.getFullYear() === now.getFullYear())) return false;
+            } else if (dateFilter === 'custom' && customDateRange.start && customDateRange.end) {
+                const tDate = new Date(t.date);
+                const start = new Date(customDateRange.start);
+                const end = new Date(customDateRange.end);
+                if (!(tDate >= start && tDate <= end)) return false;
+            }
         }
-        if (dateFilter === 'quarter') {
-            const quarter = Math.floor(now.getMonth() / 3);
-            const tQuarter = Math.floor(date.getMonth() / 3);
-            return tQuarter === quarter && date.getFullYear() === now.getFullYear();
-        }
-        if (dateFilter === 'year') {
-            return date.getFullYear() === now.getFullYear();
-        }
-        if (dateFilter === 'custom' && customDateRange.start && customDateRange.end) {
-            const tDate = new Date(t.date);
-            const start = new Date(customDateRange.start);
-            const end = new Date(customDateRange.end);
-            return tDate >= start && tDate <= end;
-        }
+        
+        // 业务类型筛选
+        if (businessTypeFilter !== 'all' && t.businessType !== businessTypeFilter) return false;
+        
+        // 交易类型筛选
+        if (transactionTypeFilter !== 'all' && t.transactionType !== transactionTypeFilter) return false;
+        
+        // 支付方式筛选
+        if (paymentMethodFilter !== 'all' && t.paymentMethod !== paymentMethodFilter) return false;
+        
         return true;
     });
     
-    // 根据筛选后的交易计算统计数据
-    // 注：充值/提现统计已隐藏，如需恢复可取消注释
-    // const totalRecharge = filteredTransactions
-    //     .filter((t: any) => t.type === 'recharge')
-    //     .reduce((sum: number, t: any) => sum + t.amount, 0);
-    // const totalWithdraw = filteredTransactions
-    //     .filter((t: any) => t.type === 'withdrawal')
-    //     .reduce((sum: number, t: any) => sum + t.amount, 0);
-    
     return (
     <div className="w-full space-y-6 animate-in fade-in duration-500">
-        {/* Global Date Filter Bar - 最高层级 */}
+        {/* Filter Bar - 多维度筛选 */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                {/* 时间范围 */}
+                <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-gray-700">时间范围</span>
                     <div className="flex bg-gray-100 p-1 rounded-lg">
                         {['all', 'month', 'quarter', 'year'].map((filter) => (
@@ -387,11 +395,53 @@ const BalanceView = ({ balance, transactions, onShowRecharge, onShowWithdraw }: 
                         自定义
                     </button>
                 </div>
+                
+                {/* 业务类型 */}
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-gray-500">业务类型</span>
+                    <select 
+                        value={businessTypeFilter}
+                        onChange={(e) => setBusinessTypeFilter(e.target.value)}
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        {BUSINESS_TYPES.map(type => (
+                            <option key={type} value={type}>{type === 'all' ? '全部' : type}</option>
+                        ))}
+                    </select>
+                </div>
+                
+                {/* 交易类型 */}
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-gray-500">交易类型</span>
+                    <select 
+                        value={transactionTypeFilter}
+                        onChange={(e) => setTransactionTypeFilter(e.target.value)}
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        {TRANSACTION_TYPES.map(type => (
+                            <option key={type} value={type}>{type === 'all' ? '全部' : type}</option>
+                        ))}
+                    </select>
+                </div>
+                
+                {/* 支付方式 */}
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-gray-500">支付方式</span>
+                    <select 
+                        value={paymentMethodFilter}
+                        onChange={(e) => setPaymentMethodFilter(e.target.value)}
+                        className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        {PAYMENT_METHODS.map(method => (
+                            <option key={method} value={method}>{method === 'all' ? '全部' : method}</option>
+                        ))}
+                    </select>
+                </div>
             </div>
             
             {/* 自定义日期选择器 */}
             {showCustomDatePicker && (
-                <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-3 animate-in slide-in-from-top-2">
+                <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100 animate-in slide-in-from-top-2">
                     <span className="text-xs text-gray-500">从</span>
                     <input 
                         type="date" 
@@ -442,11 +492,14 @@ const BalanceView = ({ balance, transactions, onShowRecharge, onShowWithdraw }: 
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 {/* Table Header Row */}
                 <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-600 items-center">
-                    <div className="col-span-3">交易类型</div>
+                    <div className="col-span-2">交易类型</div>
                     <div className="col-span-3">交易信息</div>
+                    <div className="col-span-1">业务类型</div>
                     <div className="col-span-2">时间</div>
-                    <div className="col-span-2 text-right">金额</div>
-                    <div className="col-span-2 text-center">状态</div>
+                    <div className="col-span-1 text-center">支付方式</div>
+                    <div className="col-span-1 text-right">金额</div>
+                    <div className="col-span-1 text-center">操作人</div>
+                    <div className="col-span-1 text-center">状态</div>
                 </div>
 
                 {/* Table Body */}
@@ -458,16 +511,19 @@ const BalanceView = ({ balance, transactions, onShowRecharge, onShowWithdraw }: 
                                 className="grid grid-cols-12 gap-4 px-4 py-4 items-center hover:bg-gray-50 transition-colors"
                             >
                                 {/* 交易类型 */}
-                                <div className="col-span-3">
+                                <div className="col-span-2">
                                     <div className="flex items-center gap-2">
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                                            t.type === 'recharge' ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-400'
+                                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                            t.transactionType === '充值' ? 'bg-green-50 text-green-600' : 
+                                            t.transactionType === '退款' ? 'bg-orange-50 text-orange-600' :
+                                            'bg-blue-50 text-blue-600'
                                         }`}>
-                                            {t.type === 'recharge' ? <Plus size={16}/> : <ArrowRight size={16} className="rotate-180"/>}
+                                            {t.transactionType === '充值' ? <Plus size={14}/> : 
+                                             t.transactionType === '提现' ? <ArrowRight size={14} className="rotate-180"/> :
+                                             t.transactionType === '退款' ? <RefreshCw size={14}/> :
+                                             <ShoppingBag size={14}/>}
                                         </div>
-                                        <span className="font-bold text-gray-900 text-sm">
-                                            {t.type === 'recharge' ? '充值' : '提现'}
-                                        </span>
+                                        <span className="font-bold text-gray-900 text-sm">{t.transactionType}</span>
                                     </div>
                                 </div>
                                 
@@ -477,20 +533,37 @@ const BalanceView = ({ balance, transactions, onShowRecharge, onShowWithdraw }: 
                                     <div className="text-[10px] text-gray-400 font-mono mt-0.5">{t.orderNo}</div>
                                 </div>
                                 
+                                {/* 业务类型 */}
+                                <div className="col-span-1">
+                                    <span className="text-xs text-gray-600">{t.businessType || '--'}</span>
+                                </div>
+                                
                                 {/* 时间 */}
                                 <div className="col-span-2">
                                     <div className="text-xs text-gray-600">{t.date}</div>
                                 </div>
                                 
+                                {/* 支付方式 */}
+                                <div className="col-span-1 text-center">
+                                    <span className="text-[10px] text-gray-500">{t.paymentMethod || '--'}</span>
+                                </div>
+                                
                                 {/* 金额 */}
-                                <div className="col-span-2 text-right">
-                                    <div className={`text-sm font-black font-mono ${t.type === 'recharge' ? 'text-green-600' : 'text-gray-900'}`}>
-                                        {t.type === 'recharge' ? '+' : '-'} ¥{t.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                <div className="col-span-1 text-right">
+                                    <div className={`text-sm font-black font-mono whitespace-nowrap ${
+                                        t.transactionType === '充值' || t.transactionType === '退款' ? 'text-green-600' : 'text-gray-900'
+                                    }`}>
+                                        {t.transactionType === '充值' || t.transactionType === '退款' ? '+' : '-'}¥{t.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                     </div>
                                 </div>
                                 
+                                {/* 操作人 */}
+                                <div className="col-span-1 text-center">
+                                    <span className="text-xs text-gray-600">{t.operator || '--'}</span>
+                                </div>
+                                
                                 {/* 状态 */}
-                                <div className="col-span-2 text-center">
+                                <div className="col-span-1 text-center">
                                     {t.status === 'success' ? (
                                         <span className="text-[10px] bg-green-50 text-green-600 px-2 py-0.5 rounded border border-green-100">
                                             已完成
@@ -722,14 +795,14 @@ const OrdersView = ({ transactions, onShowBatchInvoice }: any) => {
                                 <span>选择</span>
                             </div>
                         )}
-                        <div className={`${showBatchMode ? 'col-span-2' : 'col-span-3'}`}>应用名称</div>
+                        <div className={`${showBatchMode ? 'col-span-2' : 'col-span-2'}`}>应用名称</div>
                         <div className="col-span-2">订单信息</div>
                         <div className="col-span-2">有效期</div>
                         <div className="col-span-1 text-center">优惠</div>
                         <div className="col-span-1 text-center">支付方式</div>
                         <div className="col-span-1 text-right">实付金额</div>
+                        <div className="col-span-1 text-center">操作人</div>
                         <div className="col-span-1 text-center">状态</div>
-                        <div className="col-span-1 text-center">操作</div>
                     </div>
 
                     {/* Table Body */}
@@ -757,7 +830,7 @@ const OrdersView = ({ transactions, onShowBatchInvoice }: any) => {
                                     )}
                                     
                                     {/* 应用名称 */}
-                                    <div className={`${showBatchMode ? 'col-span-2' : 'col-span-3'}`}>
+                                    <div className={`${showBatchMode ? 'col-span-2' : 'col-span-2'}`}>
                                         <div className="font-bold text-gray-900 text-sm">{t.item}</div>
                                         <div className="text-[10px] text-gray-400 font-mono mt-0.5">{t.orderNo}</div>
                                     </div>
@@ -805,6 +878,11 @@ const OrdersView = ({ transactions, onShowBatchInvoice }: any) => {
                                         )}
                                     </div>
                                     
+                                    {/* 操作人 */}
+                                    <div className="col-span-1 text-center">
+                                        <span className="text-xs text-gray-600">{t.operator || '--'}</span>
+                                    </div>
+                                    
                                     {/* 状态 */}
                                     <div className="col-span-1 text-center">
                                         {t.status === 'success' ? (
@@ -815,25 +893,6 @@ const OrdersView = ({ transactions, onShowBatchInvoice }: any) => {
                                             <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded border border-amber-100">
                                                 处理中
                                             </span>
-                                        )}
-                                    </div>
-                                    
-                                    {/* 操作 */}
-                                    <div className="col-span-1 text-center">
-                                        {!showBatchMode && (
-                                            <div className="flex items-center justify-center gap-1">
-                                                {!t.invoiced && t.status === 'success' && (
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); alert(`为订单 ${t.orderNo} 申请开票`); }}
-                                                        className="text-[10px] font-bold text-blue-600 hover:text-blue-700 px-2 py-1 rounded hover:bg-blue-50 transition-colors"
-                                                    >
-                                                        开票
-                                                    </button>
-                                                )}
-                                                {t.invoiced && (
-                                                    <span className="text-[10px] text-gray-400">已开票</span>
-                                                )}
-                                            </div>
                                         )}
                                     </div>
                                 </div>
