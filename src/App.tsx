@@ -242,19 +242,28 @@ const StoreView = ({ products, userProfile, onSelectProduct, onShowRenewal, onSh
                 {filteredProducts.map((p: any) => (
                     <div 
                         key={p.id} 
-                        className={`group bg-white rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col p-5 ${
+                        className={`group bg-white rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col p-5 relative overflow-hidden ${
                             p.isOwned 
-                            ? 'border-gray-50 opacity-70 grayscale-[0.5]' 
+                            ? 'border-gray-200 bg-gray-50/30' 
                             : 'border-gray-100 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-50'
                         }`}
                         onClick={() => onSelectProduct(p)}
                     >
+                        {/* 已购买标记 - 右上角斜角 */}
+                        {p.isOwned && (
+                            <div className="absolute top-0 right-0 z-10">
+                                <div className="relative w-16 h-16 overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-24 h-24 bg-green-500 transform rotate-45 translate-x-12 -translate-y-12"></div>
+                                    <span className="absolute top-3 right-1 text-[9px] font-black text-white tracking-wider transform rotate-45">已购买</span>
+                                </div>
+                            </div>
+                        )}
                         <div className="flex gap-4 mb-4">
-                            <div className={`w-12 h-12 rounded-xl ${p.imageColor} flex items-center justify-center text-gray-700 shadow-sm group-hover:scale-105 transition-transform flex-shrink-0`}>
+                            <div className={`w-12 h-12 rounded-xl ${p.imageColor} flex items-center justify-center text-gray-700 shadow-sm group-hover:scale-105 transition-transform flex-shrink-0 ${p.isOwned ? 'grayscale-[0.3]' : ''}`}>
                                 {p.type === 'software' ? <Smartphone size={24} /> : <Activity size={24} />}
                             </div>
                             <div className="flex-1 min-w-0 relative">
-                                <h4 className="text-sm font-black text-gray-900 mb-1 line-clamp-1 group-hover:text-blue-600">{p.title}</h4>
+                                <h4 className={`text-sm font-black mb-1 line-clamp-1 ${p.isOwned ? 'text-gray-600' : 'text-gray-900 group-hover:text-blue-600'}`}>{p.title}</h4>
                                 <div className="flex items-center gap-2">
                                     {p.trialDays && !p.isOwned && (
                                         <span className="text-[9px] bg-blue-50 text-blue-600 font-black px-1.5 py-0.5 rounded border border-blue-100">
@@ -331,23 +340,13 @@ const BalanceView = ({ balance, transactions, onShowRecharge, onShowWithdraw }: 
     });
     
     // 根据筛选后的交易计算统计数据
-    const totalRecharge = filteredTransactions
-        .filter((t: any) => t.type === 'recharge')
-        .reduce((sum: number, t: any) => sum + t.amount, 0);
-    const totalWithdraw = filteredTransactions
-        .filter((t: any) => t.type === 'withdrawal')
-        .reduce((sum: number, t: any) => sum + t.amount, 0);
-    
-    // 获取日期筛选标签
-    const getDateFilterLabel = () => {
-        switch(dateFilter) {
-            case 'month': return '本月';
-            case 'quarter': return '本季度';
-            case 'year': return '本年';
-            case 'custom': return '自定义';
-            default: return '全部时间';
-        }
-    };
+    // 注：充值/提现统计已隐藏，如需恢复可取消注释
+    // const totalRecharge = filteredTransactions
+    //     .filter((t: any) => t.type === 'recharge')
+    //     .reduce((sum: number, t: any) => sum + t.amount, 0);
+    // const totalWithdraw = filteredTransactions
+    //     .filter((t: any) => t.type === 'withdrawal')
+    //     .reduce((sum: number, t: any) => sum + t.amount, 0);
     
     return (
     <div className="w-full space-y-6 animate-in fade-in duration-500">
@@ -418,43 +417,20 @@ const BalanceView = ({ balance, transactions, onShowRecharge, onShowWithdraw }: 
             )}
         </div>
         
-        {/* Statistics Dashboard - 受时间筛选影响 */}
+        {/* Statistics Dashboard - 仅显示余额和按钮 */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-gray-100">
-                {/* Balance Area (Primary Focus) */}
-                <div className="flex-1 p-8 bg-gradient-to-br from-white to-blue-50/30">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">当前可用余额</div>
-                            <div className="flex items-baseline gap-1">
-                                <span className="text-sm font-bold text-gray-900">¥</span>
-                                <span className="text-4xl font-black text-gray-900 font-mono tracking-tight">{balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                            </div>
-                        </div>
-                        <div className="flex gap-2">
-                            <Button className="h-10 px-8 text-sm font-bold shadow-blue-100" onClick={onShowRecharge}>充值</Button>
-                            <Button variant="secondary" className="h-10 px-4 text-sm font-bold bg-white" onClick={onShowWithdraw}>提现</Button>
+            <div className="p-8 bg-gradient-to-br from-white to-blue-50/30">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">当前可用余额</div>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-sm font-bold text-gray-900">¥</span>
+                            <span className="text-4xl font-black text-gray-900 font-mono tracking-tight">{balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                         </div>
                     </div>
-                </div>
-
-                {/* Monthly Stats - 根据筛选显示 */}
-                <div className="w-full md:w-80 p-8 flex flex-col justify-center bg-gray-50/30">
-                    <div className="space-y-6">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-lg bg-green-50 text-green-500 flex items-center justify-center"><Plus size={16}/></div>
-                                <span className="text-xs text-gray-500 font-medium">{getDateFilterLabel()}充值</span>
-                            </div>
-                            <span className="text-sm font-black text-green-600 font-mono">+ ¥ {totalRecharge.toFixed(2)}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center"><ArrowRight size={16} className="rotate-180"/></div>
-                                <span className="text-xs text-gray-500 font-medium">{getDateFilterLabel()}提现</span>
-                            </div>
-                            <span className="text-sm font-black text-gray-900 font-mono">- ¥ {totalWithdraw.toFixed(2)}</span>
-                        </div>
+                    <div className="flex gap-2">
+                        <Button className="h-10 px-8 text-sm font-bold shadow-blue-100" onClick={onShowRecharge}>充值</Button>
+                        <Button variant="secondary" className="h-10 px-4 text-sm font-bold bg-white" onClick={onShowWithdraw}>提现</Button>
                     </div>
                 </div>
             </div>
@@ -538,11 +514,16 @@ const BalanceView = ({ balance, transactions, onShowRecharge, onShowWithdraw }: 
                 )}
             </div>
 
-            {/* Load More */}
+            {/* 统计信息 */}
             {filteredTransactions.length > 0 && (
-                <div className="pt-2 text-center">
-                    <button className="text-[10px] font-bold text-gray-400 hover:text-blue-600 transition-colors flex items-center gap-2 mx-auto">
-                        <RefreshCw size={12} /> 加载更多记录
+                <div className="bg-gray-50 rounded-xl px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">共计</span>
+                        <span className="text-sm font-black text-gray-900 font-mono">{filteredTransactions.length}</span>
+                        <span className="text-xs text-gray-500">笔交易</span>
+                    </div>
+                    <button className="text-[10px] font-bold text-gray-400 hover:text-blue-600 transition-colors flex items-center gap-1">
+                        <RefreshCw size={12} /> 加载更多
                     </button>
                 </div>
             )}
@@ -589,11 +570,12 @@ const OrdersView = ({ transactions, onShowBatchInvoice }: any) => {
     
     // 根据筛选后的订单计算统计数据
     const totalOrders = filteredTransactions.length;
-    const totalAmount = filteredTransactions.reduce((sum: number, t: any) => sum + t.amount, 0);
-    const pendingInvoiceAmount = filteredTransactions
-        .filter((t: any) => !t.invoiced && t.status === 'success')
-        .reduce((sum: number, t: any) => sum + t.amount, 0);
-    const pendingInvoiceCount = filteredTransactions.filter((t: any) => !t.invoiced && t.status === 'success').length;
+    // 注：以下统计已隐藏，如需恢复可取消注释
+    // const totalAmount = filteredTransactions.reduce((sum: number, t: any) => sum + t.amount, 0);
+    // const pendingInvoiceAmount = filteredTransactions
+    //     .filter((t: any) => !t.invoiced && t.status === 'success')
+    //     .reduce((sum: number, t: any) => sum + t.amount, 0);
+    // const pendingInvoiceCount = filteredTransactions.filter((t: any) => !t.invoiced && t.status === 'success').length;
     
     // 处理订单选择（批量开票用）
     const toggleOrderSelection = (orderId: string) => {
@@ -615,17 +597,6 @@ const OrdersView = ({ transactions, onShowBatchInvoice }: any) => {
                 .filter((t: any) => !t.invoiced)
                 .map((t: any) => t.id);
             setSelectedOrders(new Set(allIds));
-        }
-    };
-    
-    // 获取日期筛选标签
-    const getDateFilterLabel = () => {
-        switch(dateFilter) {
-            case 'month': return '本月';
-            case 'quarter': return '本季度';
-            case 'year': return '本年';
-            case 'custom': return '自定义';
-            default: return '全部时间';
         }
     };
     
@@ -734,57 +705,6 @@ const OrdersView = ({ transactions, onShowBatchInvoice }: any) => {
                 )}
             </div>
             
-            {/* Statistics Dashboard - 受时间筛选影响 */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-gray-100">
-                    {/* Left: Summary */}
-                    <div className="flex-1 p-8 bg-gradient-to-br from-white to-blue-50/30">
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
-                                    {getDateFilterLabel()}订单金额
-                                </div>
-                                <div className="flex items-baseline gap-1">
-                                    <span className="text-sm font-bold text-gray-900">¥</span>
-                                    <span className="text-4xl font-black text-gray-900 font-mono tracking-tight">
-                                        {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Right: Stats */}
-                    <div className="w-full md:w-80 p-8 flex flex-col justify-center bg-gray-50/30">
-                        <div className="space-y-6">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center">
-                                        <ShoppingBag size={16}/>
-                                    </div>
-                                    <span className="text-xs text-gray-500 font-medium">订单数量</span>
-                                </div>
-                                <span className="text-sm font-black text-gray-900 font-mono">{totalOrders} 笔</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-500 flex items-center justify-center">
-                                        <Receipt size={16}/>
-                                    </div>
-                                    <span className="text-xs text-gray-500 font-medium">待开发票</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-orange-600">
-                                    <span className="text-sm font-black font-mono">¥ {pendingInvoiceAmount.toFixed(2)}</span>
-                                    {pendingInvoiceCount > 0 && (
-                                        <span className="text-[10px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded">{pendingInvoiceCount}笔</span>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             {/* Order List - 表格布局 */}
             <div className="space-y-4">
                 {/* Table */}
@@ -929,11 +849,16 @@ const OrdersView = ({ transactions, onShowBatchInvoice }: any) => {
                     )}
                 </div>
 
-                {/* Load More */}
+                {/* 统计信息 */}
                 {filteredTransactions.length > 0 && (
-                    <div className="pt-2 text-center">
-                        <button className="text-[10px] font-bold text-gray-400 hover:text-blue-600 transition-colors flex items-center gap-2 mx-auto">
-                            <RefreshCw size={12} /> 加载更多记录
+                    <div className="bg-gray-50 rounded-xl px-6 py-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">共计</span>
+                            <span className="text-sm font-black text-gray-900 font-mono">{totalOrders}</span>
+                            <span className="text-xs text-gray-500">笔订单</span>
+                        </div>
+                        <button className="text-[10px] font-bold text-gray-400 hover:text-blue-600 transition-colors flex items-center gap-1">
+                            <RefreshCw size={12} /> 加载更多
                         </button>
                     </div>
                 )}
@@ -2263,7 +2188,7 @@ export default function AppStoreDemo() {
                                 setCompletedOrder(null);
                             }}
                         >
-                            {completedOrder.isCorporate ? '查看订单' : '立即启用'}
+                            {completedOrder.isCorporate ? '查看订单' : '好的'}
                         </Button>
                     </div>
                 )}
