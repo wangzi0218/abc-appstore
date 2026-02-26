@@ -156,25 +156,7 @@ const SimpleMarkdown = ({ content }: { content: string }) => {
 // --- COMPONENTS ---
 
 const StoreView = ({ products, userProfile, onSelectProduct, onShowRenewal, onShowUpgrade }: any) => {
-    const [bizFilter, setBizFilter] = useState('all');
-    
-    const BIZ_CATEGORIES = [
-        { id: 'all', label: '全部应用' },
-        { id: 'growth', label: '增加收入' },
-        { id: 'efficiency', label: '提高效率' },
-        { id: 'safety', label: '合规省心' },
-        { id: 'hardware', label: '硬件设备' }
-    ];
-
     const filteredProducts = products
-        .filter((p: any) => {
-            if (bizFilter === 'all') return true;
-            if (bizFilter === 'hardware') return p.type === 'hardware';
-            if (bizFilter === 'growth') return p.tags.some((t: string) => t.includes('获客') || t.includes('增收') || t.includes('客单') || t.includes('引流'));
-            if (bizFilter === 'efficiency') return p.tags.some((t: string) => t.includes('效率') || t.includes('秩序') || t.includes('自动') || t.includes('管理'));
-            if (bizFilter === 'safety') return p.tags.some((t: string) => t.includes('安全') || t.includes('合规') || t.includes('风控') || t.includes('隐私'));
-            return true;
-        })
         .sort((a: any, b: any) => {
             if (a.isOwned !== b.isOwned) return a.isOwned ? 1 : -1;
             return (b.purchasedCount || 0) - (a.purchasedCount || 0);
@@ -212,32 +194,7 @@ const StoreView = ({ products, userProfile, onSelectProduct, onShowRenewal, onSh
                 </div>
             </div>
 
-            {/* 2. Biz Filter - Synced with "My Apps" style */}
-            <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-bold text-gray-900">挑选新应用</h3>
-                    <div className="flex bg-gray-100 p-1 rounded-lg">
-                        {BIZ_CATEGORIES.map(cat => (
-                            <button
-                                key={cat.id}
-                                onClick={() => setBizFilter(cat.id)}
-                                className={`px-3 py-1 text-[10px] font-bold rounded transition-all ${
-                                    bizFilter === cat.id 
-                                    ? 'bg-white text-blue-600 shadow-sm' 
-                                    : 'text-gray-400 hover:text-gray-600'
-                                }`}
-                            >
-                                {cat.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                    共 {filteredProducts.length} 个应用
-                </div>
-            </div>
-
-            {/* 3. Product Grid - Compact & Lightweight */}
+            {/* 2. Product Grid - Compact & Lightweight */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredProducts.map((p: any) => (
                     <div 
